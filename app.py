@@ -8,9 +8,8 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
 GROQ_MODEL     = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
-# Render автоматично підставляє свою публічну URL у цю змінну
 PUBLIC_URL = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("WEBHOOK_BASE_URL")
-PORT = int(os.getenv("PORT", "10000"))  # Render задає PORT сам
+PORT = int(os.getenv("PORT", "10000"))
 
 if not TELEGRAM_TOKEN or not GROQ_API_KEY:
     raise RuntimeError("Не задані TELEGRAM_TOKEN/GROQ_API_KEY у змінних середовища")
@@ -57,19 +56,19 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (update.message.text or "").strip()
+    low = text.lower()
 
-    if text.lower() == "студент":
+    if low == "студент":
         await update.message.reply_text(STUDENT, reply_markup=KBD)
-    elif text.lower() == "it-технології":
+    elif low == "it-технології":
         await update.message.reply_text(IT, reply_markup=KBD)
-    elif text.lower() == "контакти":
+    elif low == "контакти":
         await update.message.reply_text(CONTACTS, reply_markup=KBD)
-    elif text.lower() == "prompt chatgpt":
+    elif low == "prompt chatgpt":
         context.user_data["gpt"] = True
         await update.message.reply_text(HINT, reply_markup=KBD)
     else:
         if context.user_data.get("gpt"):
-            await update.message.reply_chat_action("typing")
             try:
                 answer = ask_groq(text)
                 context.user_data["gpt"] = False
@@ -87,7 +86,6 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
 
     if PUBLIC_URL:
-        # Webhook-режим для Render Web Service
         webhook_url = f"{PUBLIC_URL.rstrip('/')}/{TELEGRAM_TOKEN}"
         app.run_webhook(
             listen="0.0.0.0",
@@ -97,7 +95,6 @@ def main():
             drop_pending_updates=True,
         )
     else:
-        # Локально можна запускати polling
         app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
